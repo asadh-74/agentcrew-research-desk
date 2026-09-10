@@ -1,0 +1,16 @@
+services:
+  # Backend API (Python)
+  - type: web
+    name: agentcrew-backend
+    env: python
+    rootDir: agentcrew-research-desk/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+
+  # Frontend Web App (Next.js)
+  - type: web
+    name: agentcrew-frontend
+    env: node
+    rootDir: agentcrew-research-desk/frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
