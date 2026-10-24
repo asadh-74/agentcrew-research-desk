@@ -9,5 +9,25 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements-dev.txt
-      - run: python -m pytest -q
+      - run: python -m pytest -q test_app.py gridwatch_app/test_analysis.py
       - run: node --check static/app.js
+      - name: Install AgentCrew API test dependencies
+        working-directory: agentcrew-research-desk/backend
+        run: pip install -r requirements-dev.txt
+      - name: Test AgentCrew API lifecycle
+        working-directory: agentcrew-research-desk/backend
+        run: python -m pytest -q tests/api_tests.py
+  agentcrew-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agentcrew-research-desk/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: agentcrew-research-desk/frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build

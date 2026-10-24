@@ -1,16 +1,16 @@
 import os
 import uuid
+import logging
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-from agents import build_crew
-
 load_dotenv()
+log = logging.getLogger(__name__)
 
 app = FastAPI(title="AgentCrew Research Desk API")
 
@@ -31,7 +31,14 @@ supabase: Client | None = (
 
 
 class ResearchRequest(BaseModel):
-    topic: str
+    topic: str = Field(min_length=4, max_length=300)
+
+    @field_validator("topic")
+    @classmethod
+    def nonblank_topic(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("topic is required")
+        return value.strip()
 
 
 class SessionOut(BaseModel):
@@ -45,23 +52,28 @@ class SessionOut(BaseModel):
 def run_crew_job(session_id: str, topic: str):
     """Executed in the background: runs the crew and writes the result to Supabase."""
     try:
+        # Import the large optional agent stack only when a research job is dispatched.
+        from agents import build_crew
+
         crew = build_crew(topic)
         result = crew.kickoff()
-        if supabase:
+        supabase.table("research_sessions").update(
+            {"status": "completed", "result": str(result)}
+        ).eq("id", session_id).execute()
+    except Exception:  # noqa: BLE001
+        log.exception("Research job %s failed", session_id)
+        try:
             supabase.table("research_sessions").update(
-                {"status": "completed", "result": str(result)}
+                {"status": "failed", "result": "Research failed. Check the backend logs and confirm the model service is available."}
             ).eq("id", session_id).execute()
-    except Exception as exc:  # noqa: BLE001
-        if supabase:
-            supabase.table("research_sessions").update(
-                {"status": "failed", "result": f"Error: {exc}"}
-            ).eq("id", session_id).execute()
+        except Exception:  # noqa: BLE001
+            log.exception("Could not persist failure status for research job %s", session_id)
 
 
 @app.post("/research", response_model=SessionOut)
 def start_research(req: ResearchRequest, background_tasks: BackgroundTasks):
-    if not req.topic.strip():
-        raise HTTPException(400, "topic is required")
+    if not supabase:
+        raise HTTPException(503, "Research storage is not configured. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.")
 
     session_id = str(uuid.uuid4())
     record = {
@@ -72,8 +84,11 @@ def start_research(req: ResearchRequest, background_tasks: BackgroundTasks):
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    if supabase:
+    try:
         supabase.table("research_sessions").insert(record).execute()
+    except Exception:  # noqa: BLE001
+        log.exception("Could not save research session")
+        raise HTTPException(503, "Could not save this inquiry. Check the database configuration and try again.") from None
 
     background_tasks.add_task(run_crew_job, session_id, req.topic)
     return record
@@ -82,7 +97,7 @@ def start_research(req: ResearchRequest, background_tasks: BackgroundTasks):
 @app.get("/sessions", response_model=list[SessionOut])
 def list_sessions():
     if not supabase:
-        return []
+        raise HTTPException(503, "Research storage is not configured.")
     res = (
         supabase.table("research_sessions")
         .select("*")
@@ -96,7 +111,7 @@ def list_sessions():
 @app.get("/sessions/{session_id}", response_model=SessionOut)
 def get_session(session_id: str):
     if not supabase:
-        raise HTTPException(404, "not found")
+        raise HTTPException(503, "Research storage is not configured.")
     res = supabase.table("research_sessions").select("*").eq("id", session_id).execute()
     if not res.data:
         raise HTTPException(404, "session not found")
@@ -105,4 +120,10 @@ def get_session(session_id: str):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "supabase_connected": supabase is not None}
+    ready = supabase is not None
+    return {
+        "status": "ok" if ready else "degraded",
+        "research_enabled": ready,
+        "supabase_configured": ready,
+        "model": os.getenv("OLLAMA_MODEL", "llama3.1"),
+    }

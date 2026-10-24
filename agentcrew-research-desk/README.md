@@ -42,7 +42,9 @@ ollama serve
 
 ### 2. Supabase
 Create a project at supabase.com, then run `supabase/schema.sql` in the SQL editor.
-Copy your project URL, anon key, and service role key.
+Copy your project URL, anon key, and service role key. Research jobs are rejected
+with a clear `503` until the backend has its service URL and service-role key; this
+prevents jobs being accepted without a place to save their status and result.
 
 ### 3. Backend
 ```bash
@@ -53,6 +55,9 @@ cp .env.example .env   # fill in Supabase keys
 uvicorn main:app --reload --port 8000
 ```
 
+For API lifecycle tests without installing the full CrewAI/Ollama stack, use
+`pip install -r requirements-dev.txt` and `pytest -q tests/api_tests.py`.
+
 ### 4. Frontend
 ```bash
 cd frontend
@@ -62,6 +67,11 @@ npm run dev
 ```
 
 Visit `http://localhost:3000`.
+
+The frontend builds without credentials, but live research requires both API and
+Supabase settings. It polls the API for session updates and uses Supabase Realtime
+when configured. Do not use private topics in a public demo: the sample schema
+intentionally allows public reads for portfolio display.
 
 ## Deploying
 
@@ -74,6 +84,10 @@ Visit `http://localhost:3000`.
   or a GPU box you control. For a fully-hosted demo without managing GPUs, you can swap
   `langchain_community.llms.Ollama` for any hosted-model LangChain LLM class with one
   line changed in `backend/agents.py`.
+
+The backend uses FastAPI `BackgroundTasks`, so it is a single-process portfolio
+demo, not a durable job queue. For production workloads, replace it with a queue
+and worker and add authenticated, user-scoped sessions.
 
 ## Why this is a good portfolio piece
 
