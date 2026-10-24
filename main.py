@@ -88,3 +88,6 @@ def refine(b:Brief,x_ai_token:str|None=Header(default=None)):
 # Two portfolio applications share one free Render service.
 from scope_app.main import app as scope_app
 app.mount('/scopecraft',scope_app)
+
+from gridwatch_app.main import app as gridwatch_app
+app.mount("/gridwatch",gridwatch_app)
