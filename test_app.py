@@ -46,3 +46,10 @@ def test_unsafe_source_urls_rejected(client,url):
 def test_empty_or_blank_input(client):
  p=payload();p['sources']=[];assert client.post(ENDPOINT,json=p).status_code==422
  p=payload();p['topic']=' '*10;assert client.post(ENDPOINT,json=p).status_code==422
+
+def test_mounted_proposal_application(client):
+ assert client.get('/scopecraft/').status_code==200
+ assert client.get('/scopecraft/static/app.js').status_code==200
+ r=client.post('/scopecraft/api/proposal',json={'client':'Demo Company','title':'Website automation','objective':'Capture and validate all customer enquiries.','rate':'25','currency':'USD','items':[{'name':'Implementation','hours':'4'}]})
+ assert r.status_code==200
+ assert r.json()['total']=='100.00'

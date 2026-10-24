@@ -84,3 +84,7 @@ def ai_summary(payload,token):
 @app.post('/api/refine')
 def refine(b:Brief,x_ai_token:str|None=Header(default=None)):
  return ai_summary(b.model_dump(mode='json'),x_ai_token)
+
+# Two portfolio applications share one free Render service.
+from scope_app.main import app as scope_app
+app.mount('/scopecraft',scope_app)

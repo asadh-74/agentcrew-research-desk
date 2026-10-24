@@ -45,3 +45,9 @@ AI only adds a draft summary; it does not change source excerpts, prices or deli
 This is a functional portfolio workflow, not a production multi-tenant SaaS. Production deployment would add account authentication, durable server storage, role-based access, distributed limits, encrypted backups, monitoring and operational validation.
 
 The earlier CrewAI / Ollama / Supabase prototype remains under `agentcrew-research-desk/` for reference; it is not used by the current root application. The new default mode preserves supplied evidence; it does not independently browse, verify sources, or claim to execute multiple AI agents. Fictional example.com sources are clearly labeled.
+
+## Public demo
+
+https://asad-research-desk-studio.onrender.com/
+
+Research Desk and ScopeCraft share a free Render service because the workspace service limit was reached. They have separate browser storage keys. ScopeCraft’s standalone source remains in `asadh-74/genai-Saas-Product`; the host repository contains a deployment copy in `scope_app/`. Changes to ScopeCraft must be synchronized to that deployment copy.
