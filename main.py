@@ -91,3 +91,6 @@ app.mount('/scopecraft',scope_app)
 
 from gridwatch_app.main import app as gridwatch_app
 app.mount("/gridwatch",gridwatch_app)
+
+from supportlens.main import app as supportlens_app
+app.mount('/supportlens', supportlens_app)
