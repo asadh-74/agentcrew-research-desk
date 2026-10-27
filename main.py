@@ -33,18 +33,20 @@ class Source(BaseModel):
   p=urlparse(v)
   if p.scheme!='https' or not p.hostname or p.username or p.password: raise ValueError('Use a public HTTPS source link without credentials')
   return v
- @field_validator('title','excerpt')
+ @field_validator('title','excerpt', mode='before')
  @classmethod
  def nonblank(cls,v):
+  if not isinstance(v, str):raise ValueError('Expected text')
   if not v.strip(): raise ValueError('Cannot be blank')
   return v.strip()
 class Brief(BaseModel):
  topic:str=Field(min_length=5,max_length=250)
  question:str=Field(min_length=10,max_length=1500)
  sources:list[Source]=Field(min_length=1,max_length=8)
- @field_validator('topic','question')
+ @field_validator('topic','question', mode='before')
  @classmethod
  def nonblank(cls,v):
+  if not isinstance(v, str):raise ValueError('Expected text')
   if not v.strip(): raise ValueError('Cannot be blank')
   return v.strip()
 @app.post('/api/research')
@@ -91,6 +93,3 @@ app.mount('/scopecraft',scope_app)
 
 from gridwatch_app.main import app as gridwatch_app
 app.mount("/gridwatch",gridwatch_app)
-
-from supportlens.main import app as supportlens_app
-app.mount('/supportlens', supportlens_app)
