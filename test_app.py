@@ -53,3 +53,21 @@ def test_mounted_proposal_application(client):
  r=client.post('/scopecraft/api/proposal',json={'client':'Demo Company','title':'Website automation','objective':'Capture and validate all customer enquiries.','rate':'25','currency':'USD','items':[{'name':'Implementation','hours':'4'}]})
  assert r.status_code==200
  assert r.json()['total']=='100.00'
+
+@pytest.mark.parametrize('field,value',[('topic',' x    '),('question',' x          ')])
+def test_padded_short_brief_rejected(client,field,value):
+ p=payload();p[field]=value
+ assert client.post(ENDPOINT,json=p).status_code==422
+
+@pytest.mark.parametrize('field,value',[('title',' x '),('excerpt',' x                              ')])
+def test_padded_short_source_rejected(client,field,value):
+ p=payload();p['sources'][0][field]=value
+ assert client.post(ENDPOINT,json=p).status_code==422
+
+def test_nontext_source_rejected(client):
+ p=payload();p['sources'][0]['title']=123
+ assert client.post(ENDPOINT,json=p).status_code==422
+
+def test_mounted_proposal_rejects_padded_short_client(client):
+ p={'client':' x ','title':'Website automation','objective':'Capture and validate all customer enquiries.','rate':'25','currency':'USD','items':[{'name':'Implementation','hours':'4'}]}
+ assert client.post('/scopecraft/api/proposal',json=p).status_code==422
