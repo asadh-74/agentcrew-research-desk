@@ -2,7 +2,7 @@ fastapi==0.115.0
 uvicorn[standard]==0.30.6
 crewai==0.70.1
 crewai-tools==0.12.1
-langchain-community==0.3.1
+langchain-community==0.3.27
 ollama==0.3.3
 supabase==2.9.0
 python-dotenv==1.0.1
